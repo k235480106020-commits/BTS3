@@ -54,8 +54,10 @@ Lãi kép  : Tính trên (Gốc + Lãi đơn tích lũy) kể từ sau Deadline1
 | `TraTaiSan_Log` | Log từng lần tài sản được trả lại khách |
 | `NhanVien` | Nhân viên thu tiền (audit) |
 
-> 📸 **[Chèn ảnh ERD diagram tại đây]**  
-> *(Ảnh chụp màn hình sơ đồ ERD từ dbdiagram.io / SQL Server Management Studio)*
+
+
+<img width="1462" height="800" alt="image" src="https://github.com/user-attachments/assets/bce96298-9046-4775-a643-6765373ca04d" />
+Sơ đồ ERD 
 
 ---
 
@@ -1055,8 +1057,66 @@ GO
 
 **Phân tích kết quả:**
 - Deadline1 và Deadline2 của HD002 đã được dời về tương lai.
+  
 - Trạng thái trở về "Đang vay" — hợp đồng không còn bị tính lãi kép trong kỳ mới.
+  
 - Tiền lãi khách trả được ghi vào `ThanhToan_Log` với `LoaiThanhToan = 'Gia hạn'` để phân biệt với trả nợ thông thường.
 
 
-L.*
+##  Lịch Sử Hợp Đồng (Audit Log)
+
+###  Mục đích
+
+Trong hệ thống cầm đồ, khách hàng thường không thanh toán toàn bộ khoản vay trong một lần mà sẽ trả nhiều đợt khác nhau. Vì vậy, hệ thống cần lưu lại toàn bộ lịch sử giao dịch để:
+
+- Theo dõi chính xác dòng tiền của từng hợp đồng
+  
+- Kiểm tra lịch sử thanh toán khi xảy ra tranh chấp
+  
+- Hỗ trợ audit tài chính và đối soát dữ liệu
+  
+- Tránh thất thoát hoặc sửa đổi dữ liệu trái phép
+  
+- Phân tích thói quen thanh toán của khách hàng
+
+Nếu hệ thống chỉ cập nhật trực tiếp trường `SoTienConLai` trong bảng `HopDong` thì toàn bộ lịch sử trả tiền trước đó sẽ bị mất, gây khó khăn cho việc kiểm tra và kiểm toán.
+
+---
+
+###  Giải pháp thiết kế
+
+Hệ thống sử dụng bảng riêng `ThanhToan_Log` để lưu từng lần khách trả tiền.
+
+Mỗi giao dịch thanh toán sẽ được ghi thêm một dòng mới thay vì ghi đè dữ liệu cũ.
+
+Nguyên tắc hoạt động:
+
+```text
+Không UPDATE lịch sử thanh toán
+
+Chỉ INSERT thêm log mới
+
+Điều này giúp đảm bảo:
+
+Tính toàn vẹn dữ liệu
+
+Khả năng truy vết toàn bộ giao dịch
+
+Minh bạch trong quản lý tài chính
+
+Cấu trúc bảng ThanhToan_Log
+
+```sql
+CREATE TABLE ThanhToan_Log (
+    LogID         INT IDENTITY(1,1) PRIMARY KEY,
+    HopDongID     INT NOT NULL,
+    NhanVienID    INT,
+    NgayTra       DATETIME NOT NULL DEFAULT GETDATE(),
+    SoTienTra     DECIMAL(18,2) NOT NULL,
+    SoTienConNo   DECIMAL(18,2) NOT NULL,
+    LoaiThanhToan NVARCHAR(50),
+    GhiChu        NVARCHAR(500)
+);
+```
+<img width="1918" height="1078" alt="image" src="https://github.com/user-attachments/assets/ed9b5521-6795-452a-baaa-7886930fcabe" />
+
