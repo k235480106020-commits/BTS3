@@ -473,6 +473,116 @@ GO
 
 ## 5. Event 2 – Tính Toán Công Nợ Thời Gian Thực
 
+## Phân Tích Logic Tính Lãi Đơn & Lãi Kép
+
+Hệ thống cầm đồ áp dụng cơ chế tính lãi theo 2 giai đoạn:
+
+| Giai đoạn | Hình thức tính lãi |
+|---|---|
+| Từ ngày vay đến `Deadline1` | Lãi đơn |
+| Sau `Deadline1` | Lãi kép |
+
+---
+
+### 1. Giai đoạn lãi đơn
+
+Trong thời gian hợp đồng còn hạn, tiền lãi được tính trực tiếp trên số tiền gốc còn lại.
+
+#### Công thức
+
+```text
+Lãi đơn = Gốc × Lãi suất ngày × Số ngày vay
+```
+
+Trong hệ thống:
+
+```text
+Lãi suất = 0.5% / ngày = 0.005
+```
+
+Tổng tiền cần thanh toán:
+
+```text
+Tổng tiền = Gốc + Lãi đơn
+```
+
+Hay:
+
+```text
+Tổng tiền = Gốc × (1 + 0.005 × số_ngày)
+```
+
+#### Đặc điểm
+
+- Tiền lãi tăng tuyến tính theo thời gian
+- Mỗi ngày phát sinh cùng một lượng lãi
+- Chỉ tính trên tiền gốc, không cộng dồn lãi vào gốc
+
+---
+
+### 2. Giai đoạn lãi kép
+
+Sau khi vượt quá `Deadline1`, hệ thống chuyển sang tính lãi kép.
+
+Khi đó:
+
+1. Toàn bộ lãi đơn tích lũy trước đó được cộng vào gốc
+  
+2. Khoản tiền mới này trở thành cơ sở để tiếp tục tính lãi
+
+---
+
+### Công thức tính lãi kép
+
+#### Bước 1 — Tính lãi đơn tích lũy
+
+```text
+LãiĐơnTíchLũy = Gốc × 0.005 × số_ngày_trong_hạn
+```
+
+#### Bước 2 — Tạo gốc mới
+
+```text
+GốcMới = Gốc + LãiĐơnTíchLũy
+```
+
+#### Bước 3 — Tính lãi kép sau Deadline1
+
+```text
+LãiKép = GốcMới × ((1 + 0.005)^số_ngày_quá_hạn − 1)
+```
+
+#### Bước 4 — Tổng số tiền phải trả
+
+```text
+Tổng tiền = Gốc + Lãi đơn tích lũy + Lãi kép
+```
+
+---
+
+### Ý nghĩa nghiệp vụ
+
+Cơ chế này phản ánh đúng mô hình hoạt động thực tế của cửa hàng cầm đồ:
+
+- Trong hạn:
+  - Lãi tăng chậm
+  - Khách dễ thanh toán
+
+- Quá hạn:
+  - Lãi tăng theo cấp số nhân
+  - Tạo áp lực trả nợ sớm
+  - Giảm rủi ro nợ xấu cho cửa hàng
+
+---
+
+### Đặc điểm của mô hình tính lãi
+
+| Loại lãi | Đặc điểm |
+|---|---|
+| Lãi đơn | Tăng đều theo thời gian |
+| Lãi kép | Lãi phát sinh trên cả gốc và lãi cũ |
+| Lãi kép quá hạn | Tăng rất nhanh khi để nợ lâu |
+
 **Phân tích:** Hai function được xây dựng theo mô hình phân tầng: `fn_CalcMoneyTransaction` tính lãi cho một lần vay đơn lẻ, rồi `fn_CalcMoneyContract` tổng hợp. Logic lãi kép được xử lý bằng công thức toán học thay vì vòng lặp để tối ưu hiệu năng.
 
 ```sql
